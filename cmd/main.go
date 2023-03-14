@@ -1,5 +1,7 @@
 package main
 
+import "Diplom/internal/incident"
+
 func main() {
 	//sms, _ := sms.New()
 	//sms.ReplaceCountries()
@@ -29,14 +31,14 @@ func main() {
 	//vc.SortWithCountry()
 	//vc.PrintData()
 
-	//billing := &billing.Repo{}
-	//billing.Open()
+	//bill, _ := billing.New()
+	//bill.PrintData()
 
 	//support := &support.Repo{}
 	//support.Open()
 
-	//incident := &incident.Repo{}
-	//incident.Open()
+	inc, _ := incident.New()
+	inc.PrintData()
 
 	//service.NewService()
 

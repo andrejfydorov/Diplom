@@ -26,7 +26,7 @@ type ResultSetT struct {
 	Incidents []incident.IncidentData        `json:"incident"`
 }
 
-func GetResultData() (ResultSetT, ResultT) {
+func GetResultData() ResultT {
 	var rst ResultSetT
 	var rt = ResultT{Status: true, Data: rst}
 
@@ -36,7 +36,8 @@ func GetResultData() (ResultSetT, ResultT) {
 		log.Println(err)
 		rt.Status = false
 		rt.Error = err.Error()
-		return rst, rt
+		rt.Data = rst
+		return rt
 	}
 	sms.ReplaceCountries()
 	sms.SortWithCountry()
@@ -45,13 +46,18 @@ func GetResultData() (ResultSetT, ResultT) {
 		log.Println(err)
 		rt.Status = false
 		rt.Error = err.Error()
-		return rst, rt
+		rt.Data = rst
+		return rt
 	}
 
 	sms.SortWithProvider()
 	sms2, err := sms.GetData()
 	if err != nil {
+		log.Println(err)
+		rt.Status = false
 		rt.Error = err.Error()
+		rt.Data = rst
+		return rt
 	}
 	//========end sms region===================
 
@@ -61,7 +67,8 @@ func GetResultData() (ResultSetT, ResultT) {
 		log.Println(err)
 		rt.Status = false
 		rt.Error = err.Error()
-		return rst, rt
+		rt.Data = rst
+		return rt
 	}
 	mms.ReplaceCountries()
 	mms.SortWithCountry()
@@ -70,13 +77,18 @@ func GetResultData() (ResultSetT, ResultT) {
 		log.Println(err)
 		rt.Status = false
 		rt.Error = err.Error()
-		return rst, rt
+		rt.Data = rst
+		return rt
 	}
 
 	mms.SortWithProvider()
 	mms2, err := mms.GetData()
 	if err != nil {
+		log.Println(err)
+		rt.Status = false
 		rt.Error = err.Error()
+		rt.Data = rst
+		return rt
 	}
 	//========end mms region===================
 	//======start voice call region=========
@@ -85,7 +97,8 @@ func GetResultData() (ResultSetT, ResultT) {
 		log.Println(err)
 		rt.Status = false
 		rt.Error = err.Error()
-		return rst, rt
+		rt.Data = rst
+		return rt
 	}
 
 	vc1, err := vc.GetData()
@@ -93,7 +106,8 @@ func GetResultData() (ResultSetT, ResultT) {
 		log.Println(err)
 		rt.Status = false
 		rt.Error = err.Error()
-		return rst, rt
+		rt.Data = rst
+		return rt
 	}
 
 	//======end voice call region=========
@@ -103,7 +117,8 @@ func GetResultData() (ResultSetT, ResultT) {
 		log.Println(err)
 		rt.Status = false
 		rt.Error = err.Error()
-		return rst, rt
+		rt.Data = rst
+		return rt
 	}
 
 	max_emails := email.GetThreeFast()
@@ -118,12 +133,57 @@ func GetResultData() (ResultSetT, ResultT) {
 		log.Println(err)
 		rt.Status = false
 		rt.Error = "email service failed"
-		return rst, rt
+		rt.Data = rst
+		return rt
 	}
 
 	//======end email region=========
-	//========== assembling ResultSetT ResultT structures ================
 
+	//======start billing region=========
+	bill, err := billing.New()
+	if err != nil {
+		log.Println(err)
+		rt.Status = false
+		rt.Error = err.Error()
+		rt.Data = rst
+		return rt
+	}
+
+	billing, err := bill.GetData()
+	if err != nil {
+		log.Println(err)
+		rt.Status = false
+		rt.Error = err.Error()
+		rt.Data = rst
+		return rt
+	}
+
+	//======end billing region=========
+
+	//======start incident region=========
+	inc, err := incident.New()
+	if err != nil {
+		log.Println(err)
+		rt.Status = false
+		rt.Error = err.Error()
+		rt.Data = rst
+		return rt
+	}
+
+	inc.SortWithStatus()
+
+	incidents, err := inc.GetData()
+	if err != nil {
+		log.Println(err)
+		rt.Status = false
+		rt.Error = err.Error()
+		rt.Data = rst
+		return rt
+	}
+
+	//======end incident region=========
+
+	//========== assembling ResultSetT ResultT structures ================
 	rst.SMS[0] = sms2
 	rst.SMS[1] = sms1
 
@@ -134,8 +194,14 @@ func GetResultData() (ResultSetT, ResultT) {
 
 	rst.Email = emails
 
-	//============== return structures=============
+	rst.Billing = billing
 
-	return rst, rt
+	rst.Incidents = incidents
+
+	//============== return structures=============
+	rt.Status = true
+	rt.Error = ""
+	rt.Data = rst
+	return rt
 
 }

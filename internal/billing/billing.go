@@ -2,11 +2,12 @@ package billing
 
 import (
 	"Diplom/internal/utils"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"unicode"
 )
@@ -22,10 +23,45 @@ type BillingData struct {
 
 type Repo struct {
 	mutex  sync.Mutex
-	bilngs []*BillingData
+	billng *BillingData
 }
 
-func (r *Repo) Open() {
+type BillingCallService interface {
+	GetData() (BillingData, error)
+	PrintData()
+}
+
+func New() (BillingCallService, error) {
+	var r = Repo{}
+	err := r.LoadData()
+	if err != nil {
+		return nil, errors.New("billing service failed")
+	}
+	return &r, nil
+}
+
+func (r *Repo) GetData() (BillingData, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	res := r.billng
+
+	if res == nil {
+		var r BillingData
+		return r, errors.New("billing service failed")
+	}
+
+	return *res, nil
+}
+
+func (r *Repo) PrintData() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	fmt.Println(r.billng)
+}
+
+func (r *Repo) LoadData() error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -33,68 +69,53 @@ func (r *Repo) Open() {
 	if err != nil {
 		log.Println("Unable to open file:", err)
 		log.Fatalln(err)
+		return err
 	}
 	defer file.Close()
 
 	content, err := ioutil.ReadAll(file)
 	if err != nil {
 		log.Fatalln(err)
+		return err
 	}
 
 	contentStr := string(content)
-	lines := strings.Split(contentStr, "\n")
 
-	//fmt.Println(lines)
-
-MainLoop:
-	for _, line := range lines {
-
-		if len(line) < 6 {
-			continue
-		}
-
-		for _, v := range line {
-			if !unicode.IsDigit(v) {
-				continue MainLoop
-			}
-		}
-
-		var bytes [6]byte
-
-		for i, v := range line {
-			num, err := strconv.Atoi(string(v))
-			if err != nil {
-				log.Fatalln(err)
-			}
-			bytes[i] = byte(num)
-
-			//bol, err := strconv.ParseBool(string(v))
-			//if err != nil {
-			//	log.Fatalln(err)
-			//}
-			//bools = append(bools, bol)
-
-		}
-
-		bytesSum := utils.BitsToUint8(bytes)
-
-		//bytes = utils.BitsToBytes(bytes)
-
-		var billing BillingData
-
-		billing.CreateCustomer = utils.Itob((bytesSum >> 0) & 1 & bytes[5])
-		billing.Purchase = utils.Itob((bytesSum >> 1) & 1 & bytes[4])
-		billing.Payout = utils.Itob((bytesSum >> 2) & 1 & bytes[3])
-		billing.Recurring = utils.Itob((bytesSum >> 3) & 1 & bytes[2])
-		billing.FraudControl = utils.Itob((bytesSum >> 4) & 1 & bytes[1])
-		billing.CheckoutPage = utils.Itob((bytesSum >> 5) & 1 & bytes[0])
-
-		r.bilngs = append(r.bilngs, &billing)
-
+	if len(contentStr) < 6 {
+		log.Fatalln("Invalid input string")
+		return errors.New("Invalid input string")
 	}
 
-	for _, bill := range r.bilngs {
-		log.Println(bill)
+	for _, v := range contentStr {
+		if !unicode.IsDigit(v) {
+			log.Fatalln("Invalid input string")
+			return errors.New("Invalid input string")
+		}
 	}
 
+	var bytes [6]byte
+
+	for i, v := range contentStr {
+		num, err := strconv.Atoi(string(v))
+		if err != nil {
+			log.Fatalln(err)
+			return err
+		}
+		bytes[i] = byte(num)
+	}
+
+	bytesSum := utils.BitsToUint8(bytes)
+
+	var billing BillingData
+
+	billing.CreateCustomer = utils.Itob((bytesSum >> 0) & 1 & bytes[5])
+	billing.Purchase = utils.Itob((bytesSum >> 1) & 1 & bytes[4])
+	billing.Payout = utils.Itob((bytesSum >> 2) & 1 & bytes[3])
+	billing.Recurring = utils.Itob((bytesSum >> 3) & 1 & bytes[2])
+	billing.FraudControl = utils.Itob((bytesSum >> 4) & 1 & bytes[1])
+	billing.CheckoutPage = utils.Itob((bytesSum >> 5) & 1 & bytes[0])
+
+	r.billng = &billing
+
+	return nil
 }
