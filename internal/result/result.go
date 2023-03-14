@@ -6,6 +6,7 @@ import (
 	"Diplom/internal/incident"
 	"Diplom/internal/mms"
 	"Diplom/internal/sms"
+	"Diplom/internal/support"
 	"Diplom/internal/voice"
 	"log"
 )
@@ -160,6 +161,20 @@ func GetResultData() ResultT {
 
 	//======end billing region=========
 
+	//======start support region=========
+	sup, err := support.New()
+	if err != nil {
+		log.Println(err)
+		rt.Status = false
+		rt.Error = err.Error()
+		rt.Data = rst
+		return rt
+	}
+
+	supports := sup.GetCalculatedData()
+
+	//======end support region=========
+
 	//======start incident region=========
 	inc, err := incident.New()
 	if err != nil {
@@ -195,6 +210,8 @@ func GetResultData() ResultT {
 	rst.Email = emails
 
 	rst.Billing = billing
+	
+	rst.Support = supports
 
 	rst.Incidents = incidents
 
