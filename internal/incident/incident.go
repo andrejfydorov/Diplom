@@ -57,7 +57,7 @@ func (r *Repo) PrintData() {
 	defer r.mutex.Unlock()
 
 	for _, inc := range r.incidents {
-		log.Println(inc)
+		fmt.Println(inc)
 	}
 }
 
@@ -88,7 +88,7 @@ func (r *Repo) LoadData() error {
 			return err
 		}
 
-		var incident = []IncidentData{}
+		var incident []*IncidentData
 
 		err = json.Unmarshal(body, &incident)
 		if err != nil {
@@ -96,7 +96,7 @@ func (r *Repo) LoadData() error {
 			return err
 		}
 
-		fmt.Println(incident)
+		r.incidents = incident
 	}
 
 	return nil

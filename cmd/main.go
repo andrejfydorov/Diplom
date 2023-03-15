@@ -1,5 +1,10 @@
 package main
 
+import (
+	"Diplom/internal/result"
+	"fmt"
+)
+
 func main() {
 	//sms, _ := sms.New()
 	//sms.ReplaceCountries()
@@ -42,6 +47,9 @@ func main() {
 
 	//inc, _ := incident.New()
 	//inc.PrintData()
+
+	result := result.GetResultData()
+	fmt.Println(result)
 
 	//service.NewService()
 

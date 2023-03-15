@@ -12,9 +12,9 @@ import (
 )
 
 type EmailData struct {
-	Country      string
-	Provider     string
-	DeliveryTime int
+	Country      string `json:"country,omitempty"`
+	Provider     string `json:"provider,omitempty"`
+	DeliveryTime int    `json:"deliveryTime,omitempty"`
 }
 
 var providers = []string{"Gmail", "Yahoo", "Hotmail", "MSN", "Orange", "Comcast",

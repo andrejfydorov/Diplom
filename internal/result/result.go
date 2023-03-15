@@ -32,7 +32,7 @@ func GetResultData() ResultT {
 	var rt = ResultT{Status: true, Data: rst}
 
 	//========start sms region===================
-	sms, err := sms.New()
+	s, err := sms.New()
 	if err != nil {
 		log.Println(err)
 		rt.Status = false
@@ -40,9 +40,9 @@ func GetResultData() ResultT {
 		rt.Data = rst
 		return rt
 	}
-	sms.ReplaceCountries()
-	sms.SortWithCountry()
-	sms1, err := sms.GetData()
+	s.ReplaceCountries()
+	s.SortWithCountry()
+	sms1, err := s.GetData()
 	if err != nil {
 		log.Println(err)
 		rt.Status = false
@@ -51,8 +51,8 @@ func GetResultData() ResultT {
 		return rt
 	}
 
-	sms.SortWithProvider()
-	sms2, err := sms.GetData()
+	s.SortWithProvider()
+	sms2, err := s.GetData()
 	if err != nil {
 		log.Println(err)
 		rt.Status = false
@@ -63,7 +63,7 @@ func GetResultData() ResultT {
 	//========end sms region===================
 
 	//========start mms region===================
-	mms, err := mms.New()
+	m, err := mms.New()
 	if err != nil {
 		log.Println(err)
 		rt.Status = false
@@ -71,9 +71,9 @@ func GetResultData() ResultT {
 		rt.Data = rst
 		return rt
 	}
-	mms.ReplaceCountries()
-	mms.SortWithCountry()
-	mms1, err := mms.GetData()
+	m.ReplaceCountries()
+	m.SortWithCountry()
+	mms1, err := m.GetData()
 	if err != nil {
 		log.Println(err)
 		rt.Status = false
@@ -82,8 +82,8 @@ func GetResultData() ResultT {
 		return rt
 	}
 
-	mms.SortWithProvider()
-	mms2, err := mms.GetData()
+	m.SortWithProvider()
+	mms2, err := m.GetData()
 	if err != nil {
 		log.Println(err)
 		rt.Status = false
@@ -113,7 +113,7 @@ func GetResultData() ResultT {
 
 	//======end voice call region=========
 	//======start email region=========
-	email, err := email.New()
+	em, err := email.New()
 	if err != nil {
 		log.Println(err)
 		rt.Status = false
@@ -122,13 +122,18 @@ func GetResultData() ResultT {
 		return rt
 	}
 
-	max_emails := email.GetThreeFast()
-	mini_emails := email.GetThreeSlow()
+	max_emails := em.GetThreeFast()
+	min_emails := em.GetThreeSlow()
 
-	var emails map[string][][]email.EmailData
+	emails := make(map[string][][]email.EmailData)
+
 	for i, _ := range max_emails {
+		emails[i] = make([][]email.EmailData, 2)
+		emails[i][0] = make([]email.EmailData, 1)
+		emails[i][1] = make([]email.EmailData, 1)
+
 		emails[i][0] = max_emails[i]
-		emails[i][1] = mini_emails[i]
+		emails[i][1] = min_emails[i]
 	}
 	if len(emails) == 0 {
 		log.Println(err)
@@ -199,9 +204,15 @@ func GetResultData() ResultT {
 	//======end incident region=========
 
 	//========== assembling ResultSetT ResultT structures ================
+	rst.SMS = make([][]sms.SMSData, 2)
+	rst.SMS[0] = make([]sms.SMSData, 1)
+	rst.SMS[1] = make([]sms.SMSData, 1)
 	rst.SMS[0] = sms2
 	rst.SMS[1] = sms1
 
+	rst.MMS = make([][]mms.MMSData, 2)
+	rst.MMS[0] = make([]mms.MMSData, 1)
+	rst.MMS[1] = make([]mms.MMSData, 1)
 	rst.MMS[0] = mms2
 	rst.MMS[1] = mms1
 
@@ -210,7 +221,7 @@ func GetResultData() ResultT {
 	rst.Email = emails
 
 	rst.Billing = billing
-	
+
 	rst.Support = supports
 
 	rst.Incidents = incidents
