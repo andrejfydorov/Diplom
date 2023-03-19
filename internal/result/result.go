@@ -36,24 +36,24 @@ func assemblingSms() (*[][]sms.SMSData, error) {
 	smses[0] = make([]sms.SMSData, 1)
 	smses[1] = make([]sms.SMSData, 1)
 
-	s, err := sms.New()
+	err := sms.LoadData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	s.ReplaceCountries()
-	s.SortWithCountry()
+	sms.ReplaceCountries()
+	sms.SortWithCountry()
 
-	sms1, err := s.GetData()
+	sms1, err := sms.GetData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	s.SortWithProvider()
+	sms.SortWithProvider()
 
-	sms2, err := s.GetData()
+	sms2, err := sms.GetData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -74,24 +74,24 @@ func assemblingMms() (*[][]mms.MMSData, error) {
 	mmses[0] = make([]mms.MMSData, 1)
 	mmses[1] = make([]mms.MMSData, 1)
 
-	m, err := mms.New()
+	err := mms.LoadData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	m.ReplaceCountries()
-	m.SortWithCountry()
+	mms.ReplaceCountries()
+	mms.SortWithCountry()
 
-	mms1, err := m.GetData()
+	mms1, err := mms.GetData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	m.SortWithProvider()
+	mms.SortWithProvider()
 
-	mms2, err := m.GetData()
+	mms2, err := mms.GetData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -109,41 +109,37 @@ func assemblingMms() (*[][]mms.MMSData, error) {
 }
 
 func asseblingVoiceCall() (*[]voice.VoiceCallData, error) {
-	var vcd []voice.VoiceCallData
-
-	vc, err := voice.New()
+	err := voice.LoadData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	vc1, err := vc.GetData()
+	vc, err := voice.GetData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	vcd = vc1
-
-	if len(vcd) == 0 {
+	if len(vc) == 0 {
 		log.Println("voice service failed")
 		return nil, errors.New("voice service failed")
 	}
 
-	return &vcd, nil
+	return &vc, nil
 }
 
 func assemblingEmail() (*map[string][][]email.EmailData, error) {
 	var emails = make(map[string][][]email.EmailData)
 
-	ems, err := email.New()
+	err := email.LoadData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	max_emails := ems.GetThreeFast()
-	min_emails := ems.GetThreeSlow()
+	max_emails := email.GetThreeFast()
+	min_emails := email.GetThreeSlow()
 
 	for i, _ := range max_emails {
 		emails[i] = make([][]email.EmailData, 2)
@@ -163,71 +159,59 @@ func assemblingEmail() (*map[string][][]email.EmailData, error) {
 }
 
 func assemblingBilling() (*billing.BillingData, error) {
-	var bil billing.BillingData
-
-	bill, err := billing.New()
+	err := billing.LoadData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	billing, err := bill.GetData()
+	billing, err := billing.GetData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	bil = billing
-
-	return &bil, nil
+	return &billing, nil
 }
 
 func assemblingSupport() (*[]int, error) {
-	var sup []int
-
-	sups, err := support.New()
+	err := support.LoadData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	supports := sups.GetCalculatedData()
+	supports := support.GetCalculatedData()
 
-	sup = supports
-
-	if len(sup) == 0 {
+	if len(supports) == 0 {
 		log.Println("support service failed")
 		return nil, errors.New("support service failed")
 	}
 
-	return &sup, nil
+	return &supports, nil
 }
 
 func assemlingIncident() (*[]incident.IncidentData, error) {
-	var inc []incident.IncidentData
-
-	incs, err := incident.New()
+	err := incident.LoadData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	incs.SortWithStatus()
+	incident.SortWithStatus()
 
-	incidents, err := incs.GetData()
+	incidents, err := incident.GetData()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	inc = incidents
-
-	if len(inc) == 0 {
+	if len(incidents) == 0 {
 		log.Println("incident service failed")
 		return nil, errors.New("incident service failed")
 	}
 
-	return &inc, nil
+	return &incidents, nil
 }
 
 func GetResultData() *ResultT {
@@ -312,6 +296,6 @@ func GetResultData() *ResultT {
 	rt.Status = true
 	rt.Error = ""
 	rt.Data = rst
-	return &rt
 
+	return &rt
 }

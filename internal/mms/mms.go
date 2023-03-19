@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"sync"
 )
 
 type MMSData struct {
@@ -18,37 +17,14 @@ type MMSData struct {
 	ResponseTime string `json:"response_time"`
 }
 
-type Repo struct {
-	mutex sync.Mutex
-	mmses []*MMSData
-}
-
-type MMSService interface {
-	ReplaceCountries()
-	SortWithCountry()
-	SortWithProvider()
-	GetData() ([]MMSData, error)
-	PrintData()
-}
+var mmses []*MMSData
 
 var providers = []string{"Topolo", "Rond", "Kildy"}
 
-func New() (MMSService, error) {
-	var r = Repo{}
-	err := r.LoadData()
-	if err != nil {
-		return nil, errors.New("mms service failed")
-	}
-	return &r, nil
-}
+func GetData() ([]MMSData, error) {
+	var res = make([]MMSData, len(mmses))
 
-func (r *Repo) GetData() ([]MMSData, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	var res = make([]MMSData, len(r.mmses))
-
-	for i, mms := range r.mmses {
+	for i, mms := range mmses {
 		res[i] = *mms
 	}
 
@@ -59,58 +35,46 @@ func (r *Repo) GetData() ([]MMSData, error) {
 	return res, nil
 }
 
-func (r *Repo) PrintData() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	for _, mms := range r.mmses {
+func PrintData() {
+	for _, mms := range mmses {
 		log.Println(mms)
 	}
 }
 
-func (r *Repo) SortWithCountry() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.mmses)
+func SortWithCountry() {
+	size := len(mmses)
 	for i := 0; i < size-1; i++ {
 		var minIdx = i
 		for j := i; j < size; j++ {
-			if strings.Compare(r.mmses[j].Country, r.mmses[minIdx].Country) == -1 {
+			if strings.Compare(mmses[j].Country, mmses[minIdx].Country) == -1 {
 				minIdx = j
 			}
 		}
-		r.mmses[i], r.mmses[minIdx] = r.mmses[minIdx], r.mmses[i]
+		mmses[i], mmses[minIdx] = mmses[minIdx], mmses[i]
 	}
 }
 
-func (r *Repo) SortWithProvider() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.mmses)
+func SortWithProvider() {
+	size := len(mmses)
 	for i := 0; i < size-1; i++ {
 		var minIdx = i
 		for j := i; j < size; j++ {
-			if strings.Compare(r.mmses[j].Provider, r.mmses[minIdx].Provider) == -1 {
+			if strings.Compare(mmses[j].Provider, mmses[minIdx].Provider) == -1 {
 				minIdx = j
 			}
 		}
-		r.mmses[i], r.mmses[minIdx] = r.mmses[minIdx], r.mmses[i]
+		mmses[i], mmses[minIdx] = mmses[minIdx], mmses[i]
 	}
 }
 
-func (r *Repo) ReplaceCountries() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.mmses)
+func ReplaceCountries() {
+	size := len(mmses)
 	for i := 0; i < size; i++ {
-		r.mmses[i].Country = utils.Alpha_2[r.mmses[i].Country]
+		mmses[i].Country = utils.Alpha_2[mmses[i].Country]
 	}
 }
 
-func (r *Repo) LoadData() error {
+func LoadData() error {
 	resp, err := http.Get("http://127.0.0.1:8383/mms") //127.0.0.1:8383
 	if err != nil {
 		log.Println(err)
@@ -119,16 +83,11 @@ func (r *Repo) LoadData() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 200 {
-		r.mutex.Lock()
-		defer r.mutex.Unlock()
-
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
-
-		var mmses []*MMSData
 
 		err = json.Unmarshal(body, &mmses)
 		if err != nil {
@@ -145,11 +104,9 @@ func (r *Repo) LoadData() error {
 			}
 		}
 
-		r.mmses = mmses
-
 	}
 
-	if len(r.mmses) == 0 {
+	if len(mmses) == 0 {
 		return errors.New("mms service failed")
 	}
 

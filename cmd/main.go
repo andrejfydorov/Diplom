@@ -6,17 +6,17 @@ import (
 )
 
 func main() {
-	//sms, _ := sms.New()
+	//sms.LoadData()
 	//sms.ReplaceCountries()
 	//sms.SortWithCountry()
 	//sms.PrintData()
 
-	//mms, _ := mms.New()
+	//mms.LoadData()
 	//mms.ReplaceCountries()
 	//mms.SortWithCountry()
 	//mms.PrintData()
 
-	//email, _ := email.New()
+	//email.LoadData()
 	//email.PrintData()
 	//fmt.Println("==================================\n")
 	//emails := email.GetThreeFast()
@@ -29,24 +29,24 @@ func main() {
 	//	fmt.Println(e)
 	//}
 
-	//vc, _ := voice.New()
-	//vc.ReplaceCountries()
-	//vc.SortWithCountry()
-	//vc.PrintData()
+	//voice.LoadData()
+	//voice.ReplaceCountries()
+	//voice.SortWithCountry()
+	//voice.PrintData()
 
-	//bill, _ := billing.New()
-	//bill.PrintData()
+	//billing.LoadData()
+	//billing.PrintData()
 
-	//sup, _ := support.New()
-	//sup.PrintData()
-	//s := sup.GetCalculatedData()
+	//support.LoadData()
+	//support.PrintData()
+	//s := support.GetCalculatedData()
 	//for _, i := range s {
 	//	fmt.Print(i, "  ")
 	//}
 	//fmt.Print("\n")
 
-	//inc, _ := incident.New()
-	//inc.PrintData()
+	//incident.LoadData()
+	//incident.PrintData()
 
 	result := result.GetResultData()
 	fmt.Println(*result)

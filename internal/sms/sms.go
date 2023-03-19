@@ -3,11 +3,11 @@ package sms
 import (
 	"Diplom/internal/utils"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
-	"sync"
 )
 
 type SMSData struct {
@@ -19,35 +19,12 @@ type SMSData struct {
 
 var providers = []string{"Topolo", "Rond", "Kildy"}
 
-type Repo struct {
-	mutex sync.Mutex
-	smses []*SMSData
-}
+var smses []*SMSData
 
-type SmsService interface {
-	ReplaceCountries()
-	SortWithCountry()
-	SortWithProvider()
-	GetData() ([]SMSData, error)
-	PrintData()
-}
+func GetData() ([]SMSData, error) {
+	var res = make([]SMSData, len(smses))
 
-func New() (SmsService, error) {
-	var r = Repo{}
-	err := r.LoadData()
-	if err != nil {
-		return nil, errors.New("sms service failed")
-	}
-	return &r, nil
-}
-
-func (r *Repo) GetData() ([]SMSData, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	var res = make([]SMSData, len(r.smses))
-
-	for i, sms := range r.smses {
+	for i, sms := range smses {
 		res[i] = *sms
 	}
 
@@ -58,65 +35,50 @@ func (r *Repo) GetData() ([]SMSData, error) {
 	return res, nil
 }
 
-func (r *Repo) PrintData() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	for _, sms := range r.smses {
+func PrintData() {
+	for _, sms := range smses {
 		log.Println(sms)
 	}
 }
 
-func (r *Repo) SortWithCountry() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.smses)
+func SortWithCountry() {
+	size := len(smses)
 	for i := 0; i < size-1; i++ {
 		var minIdx = i
 		for j := i; j < size; j++ {
-			if strings.Compare(r.smses[j].Сountry, r.smses[minIdx].Сountry) == -1 {
+			if strings.Compare(smses[j].Сountry, smses[minIdx].Сountry) == -1 {
 				minIdx = j
 			}
 		}
-		r.smses[i], r.smses[minIdx] = r.smses[minIdx], r.smses[i]
+		smses[i], smses[minIdx] = smses[minIdx], smses[i]
 	}
 }
 
-func (r *Repo) SortWithProvider() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.smses)
+func SortWithProvider() {
+	size := len(smses)
 	for i := 0; i < size-1; i++ {
 		var minIdx = i
 		for j := i; j < size; j++ {
-			if strings.Compare(r.smses[j].Provider, r.smses[minIdx].Provider) == -1 {
+			if strings.Compare(smses[j].Provider, smses[minIdx].Provider) == -1 {
 				minIdx = j
 			}
 		}
-		r.smses[i], r.smses[minIdx] = r.smses[minIdx], r.smses[i]
+		smses[i], smses[minIdx] = smses[minIdx], smses[i]
 	}
 }
 
-func (r *Repo) ReplaceCountries() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.smses)
+func ReplaceCountries() {
+	size := len(smses)
 	for i := 0; i < size; i++ {
-		r.smses[i].Сountry = utils.Alpha_2[r.smses[i].Сountry]
+		smses[i].Сountry = utils.Alpha_2[smses[i].Сountry]
 	}
 }
 
-func (r *Repo) LoadData() error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	file, err := os.Open("resources/sms.data")
+func LoadData() error {
+	file, err := os.Open("simulator/sms.data")
 	if err != nil {
-		log.Println("Unable to open file:", err)
-		log.Fatalln(err)
+		fmt.Println("Unable to open file:", err)
+		log.Println(err)
 		return err
 	}
 	defer file.Close()
@@ -153,11 +115,11 @@ func (r *Repo) LoadData() error {
 		sms.ResponseTime = str[2]
 		sms.Provider = str[3]
 
-		r.smses = append(r.smses, &sms)
+		smses = append(smses, &sms)
 
 	}
 
-	if len(r.smses) == 0 {
+	if len(smses) == 0 {
 		return errors.New("sms service failed")
 	}
 

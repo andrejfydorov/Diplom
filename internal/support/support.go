@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"sync"
 )
 
 type SupportData struct {
@@ -14,33 +13,12 @@ type SupportData struct {
 	ActiveTickets int    `json:"active_tickets"`
 }
 
-type Repo struct {
-	mutex           sync.Mutex
-	support_structs []*SupportData
-}
+var support_structs []*SupportData
 
-type SupportService interface {
-	GetData() ([]SupportData, error)
-	GetCalculatedData() []int
-	PrintData()
-}
+func GetData() ([]SupportData, error) {
+	var res = make([]SupportData, len(support_structs))
 
-func New() (SupportService, error) {
-	var r = Repo{}
-	err := r.LoadData()
-	if err != nil {
-		return nil, errors.New("Support service failed")
-	}
-	return &r, nil
-}
-
-func (r *Repo) GetData() ([]SupportData, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	var res = make([]SupportData, len(r.support_structs))
-
-	for i, sup := range r.support_structs {
+	for i, sup := range support_structs {
 		res[i] = *sup
 	}
 
@@ -51,24 +29,18 @@ func (r *Repo) GetData() ([]SupportData, error) {
 	return res, nil
 }
 
-func (r *Repo) PrintData() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	for _, sup := range r.support_structs {
+func PrintData() {
+	for _, sup := range support_structs {
 		log.Println(sup)
 	}
 }
 
-func (r *Repo) GetCalculatedData() []int {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
+func GetCalculatedData() []int {
 	res := make([]int, 2)
 
 	var openTicketsCount int = 0
 
-	for _, sup := range r.support_structs {
+	for _, sup := range support_structs {
 		openTicketsCount += sup.ActiveTickets
 	}
 
@@ -85,7 +57,7 @@ func (r *Repo) GetCalculatedData() []int {
 	return res
 }
 
-func (r *Repo) LoadData() error {
+func LoadData() error {
 	resp, err := http.Get("http://127.0.0.1:8383/support") //127.0.0.1:8484
 	if err != nil {
 		log.Println(err)
@@ -100,15 +72,11 @@ func (r *Repo) LoadData() error {
 			return err
 		}
 
-		var support []*SupportData
-
-		err = json.Unmarshal(body, &support)
+		err = json.Unmarshal(body, &support_structs)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
-
-		r.support_structs = support
 	}
 
 	return nil

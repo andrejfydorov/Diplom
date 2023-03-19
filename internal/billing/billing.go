@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"sync"
 	"unicode"
 )
 
@@ -21,30 +20,10 @@ type BillingData struct {
 	CheckoutPage   bool `json:"checkout_page"`
 }
 
-type Repo struct {
-	mutex  sync.Mutex
-	billng *BillingData
-}
+var billing *BillingData
 
-type BillingCallService interface {
-	GetData() (BillingData, error)
-	PrintData()
-}
-
-func New() (BillingCallService, error) {
-	var r = Repo{}
-	err := r.LoadData()
-	if err != nil {
-		return nil, errors.New("billing service failed")
-	}
-	return &r, nil
-}
-
-func (r *Repo) GetData() (BillingData, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	res := r.billng
+func GetData() (BillingData, error) {
+	res := billing
 
 	if res == nil {
 		var r BillingData
@@ -54,18 +33,12 @@ func (r *Repo) GetData() (BillingData, error) {
 	return *res, nil
 }
 
-func (r *Repo) PrintData() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	fmt.Println(r.billng)
+func PrintData() {
+	fmt.Println(billing)
 }
 
-func (r *Repo) LoadData() error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	file, err := os.Open("resources/billing.data")
+func LoadData() error {
+	file, err := os.Open("simulator/billing.data")
 	if err != nil {
 		log.Println("Unable to open file:", err)
 		log.Println(err)
@@ -104,9 +77,9 @@ func (r *Repo) LoadData() error {
 		bytes[i] = byte(num)
 	}
 
-	bytesSum := utils.BitsToUint8(bytes)
+	billing = new(BillingData)
 
-	var billing BillingData
+	bytesSum := utils.BitsToUint8(bytes)
 
 	billing.CreateCustomer = utils.Itob((bytesSum >> 0) & 1 & bytes[5])
 	billing.Purchase = utils.Itob((bytesSum >> 1) & 1 & bytes[4])
@@ -114,8 +87,6 @@ func (r *Repo) LoadData() error {
 	billing.Recurring = utils.Itob((bytesSum >> 3) & 1 & bytes[2])
 	billing.FraudControl = utils.Itob((bytesSum >> 4) & 1 & bytes[1])
 	billing.CheckoutPage = utils.Itob((bytesSum >> 5) & 1 & bytes[0])
-
-	r.billng = &billing
 
 	return nil
 }

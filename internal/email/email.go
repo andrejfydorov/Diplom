@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 type EmailData struct {
@@ -20,37 +19,12 @@ type EmailData struct {
 var providers = []string{"Gmail", "Yahoo", "Hotmail", "MSN", "Orange", "Comcast",
 	"AOL", "Live", "RediffMail", "GMX", "Proton Mail", "Yandex", "Mail.ru"}
 
-type Repo struct {
-	mutex  sync.Mutex
-	emails []*EmailData
-}
+var emails []*EmailData
 
-type EmailService interface {
-	ReplaceCountries()
-	SortWithCountry()
-	SortWithProvider()
-	GetData() ([]EmailData, error)
-	GetThreeFast() map[string][]EmailData
-	GetThreeSlow() map[string][]EmailData
-	PrintData()
-}
+func GetData() ([]EmailData, error) {
+	var res = make([]EmailData, len(emails))
 
-func New() (EmailService, error) {
-	var r = Repo{}
-	err := r.LoadData()
-	if err != nil {
-		return nil, errors.New("email service failed")
-	}
-	return &r, nil
-}
-
-func (r *Repo) GetData() ([]EmailData, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	var res = make([]EmailData, len(r.emails))
-
-	for i, email := range r.emails {
+	for i, email := range emails {
 		res[i] = *email
 	}
 
@@ -61,68 +35,53 @@ func (r *Repo) GetData() ([]EmailData, error) {
 	return res, nil
 }
 
-func (r *Repo) PrintData() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	for _, email := range r.emails {
+func PrintData() {
+	for _, email := range emails {
 		log.Println(email)
 	}
 }
 
-func (r *Repo) SortWithCountry() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.emails)
+func SortWithCountry() {
+	size := len(emails)
 	for i := 0; i < size-1; i++ {
 		var minIdx = i
 		for j := i; j < size; j++ {
-			if strings.Compare(r.emails[j].Country, r.emails[minIdx].Country) == -1 {
+			if strings.Compare(emails[j].Country, emails[minIdx].Country) == -1 {
 				minIdx = j
 			}
 		}
-		r.emails[i], r.emails[minIdx] = r.emails[minIdx], r.emails[i]
+		emails[i], emails[minIdx] = emails[minIdx], emails[i]
 	}
 }
 
-func (r *Repo) SortWithProvider() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.emails)
+func SortWithProvider() {
+	size := len(emails)
 	for i := 0; i < size-1; i++ {
 		var minIdx = i
 		for j := i; j < size; j++ {
-			if strings.Compare(r.emails[j].Provider, r.emails[minIdx].Provider) == -1 {
+			if strings.Compare(emails[j].Provider, emails[minIdx].Provider) == -1 {
 				minIdx = j
 			}
 		}
-		r.emails[i], r.emails[minIdx] = r.emails[minIdx], r.emails[i]
+		emails[i], emails[minIdx] = emails[minIdx], emails[i]
 	}
 }
 
-func (r *Repo) ReplaceCountries() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.emails)
+func ReplaceCountries() {
+	size := len(emails)
 	for i := 0; i < size; i++ {
-		r.emails[i].Country = utils.Alpha_2[r.emails[i].Country]
+		emails[i].Country = utils.Alpha_2[emails[i].Country]
 	}
 }
 
-func (r Repo) GetThreeFast() map[string][]EmailData {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
+func GetThreeFast() map[string][]EmailData {
 	var res = make(map[string][]EmailData)
 
-	var email1 *EmailData = r.emails[0]
-	var email2 *EmailData = r.emails[1]
-	var email3 *EmailData = r.emails[2]
+	var email1 *EmailData = emails[0]
+	var email2 *EmailData = emails[1]
+	var email3 *EmailData = emails[2]
 
-	for i, email := range r.emails {
+	for i, email := range emails {
 		if email.Country == email1.Country {
 			if email.DeliveryTime > email1.DeliveryTime {
 				email1 = email
@@ -134,25 +93,22 @@ func (r Repo) GetThreeFast() map[string][]EmailData {
 		} else {
 			res[email1.Country] = []EmailData{*email1, *email2, *email3}
 			email1 = email
-			email2 = r.emails[i+1]
-			email3 = r.emails[i+2]
+			email2 = emails[i+1]
+			email3 = emails[i+2]
 		}
 	}
 
 	return res
 }
 
-func (r Repo) GetThreeSlow() map[string][]EmailData {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
+func GetThreeSlow() map[string][]EmailData {
 	var res = make(map[string][]EmailData)
 
-	var email1 *EmailData = r.emails[0]
-	var email2 *EmailData = r.emails[0]
-	var email3 *EmailData = r.emails[0]
+	var email1 *EmailData = emails[0]
+	var email2 *EmailData = emails[0]
+	var email3 *EmailData = emails[0]
 
-	for _, email := range r.emails {
+	for _, email := range emails {
 		if email.Country == email1.Country {
 			if email.DeliveryTime < email1.DeliveryTime {
 				email1 = email
@@ -172,11 +128,8 @@ func (r Repo) GetThreeSlow() map[string][]EmailData {
 	return res
 }
 
-func (r *Repo) LoadData() error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	file, err := os.Open("resources/email.data")
+func LoadData() error {
+	file, err := os.Open("simulator/email.data")
 	if err != nil {
 		log.Println("Unable to open file:", err)
 		log.Println(err)
@@ -221,7 +174,7 @@ func (r *Repo) LoadData() error {
 		}
 		email.DeliveryTime = i
 
-		r.emails = append(r.emails, &email)
+		emails = append(emails, &email)
 
 	}
 

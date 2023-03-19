@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 type VoiceCallData struct {
@@ -23,35 +22,12 @@ type VoiceCallData struct {
 
 var providers = []string{"TransparentCalls", "E-Voice", "JustPhone"}
 
-type Repo struct {
-	mutex      sync.Mutex
-	voiceCalls []*VoiceCallData
-}
+var voiceCalls []*VoiceCallData
 
-type VoiceCallService interface {
-	ReplaceCountries()
-	SortWithCountry()
-	SortWithProvider()
-	GetData() ([]VoiceCallData, error)
-	PrintData()
-}
+func GetData() ([]VoiceCallData, error) {
+	var res = make([]VoiceCallData, len(voiceCalls))
 
-func New() (VoiceCallService, error) {
-	var r = Repo{}
-	err := r.LoadData()
-	if err != nil {
-		return nil, errors.New("voice call service failed")
-	}
-	return &r, nil
-}
-
-func (r *Repo) GetData() ([]VoiceCallData, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	var res = make([]VoiceCallData, len(r.voiceCalls))
-
-	for i, vc := range r.voiceCalls {
+	for i, vc := range voiceCalls {
 		res[i] = *vc
 	}
 
@@ -62,62 +38,47 @@ func (r *Repo) GetData() ([]VoiceCallData, error) {
 	return res, nil
 }
 
-func (r *Repo) PrintData() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	for _, vc := range r.voiceCalls {
+func PrintData() {
+	for _, vc := range voiceCalls {
 		log.Println(vc)
 	}
 }
 
-func (r *Repo) SortWithCountry() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.voiceCalls)
+func SortWithCountry() {
+	size := len(voiceCalls)
 	for i := 0; i < size-1; i++ {
 		var minIdx = i
 		for j := i; j < size; j++ {
-			if strings.Compare(r.voiceCalls[j].Сountry, r.voiceCalls[minIdx].Сountry) == -1 {
+			if strings.Compare(voiceCalls[j].Сountry, voiceCalls[minIdx].Сountry) == -1 {
 				minIdx = j
 			}
 		}
-		r.voiceCalls[i], r.voiceCalls[minIdx] = r.voiceCalls[minIdx], r.voiceCalls[i]
+		voiceCalls[i], voiceCalls[minIdx] = voiceCalls[minIdx], voiceCalls[i]
 	}
 }
 
-func (r *Repo) SortWithProvider() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.voiceCalls)
+func SortWithProvider() {
+	size := len(voiceCalls)
 	for i := 0; i < size-1; i++ {
 		var minIdx = i
 		for j := i; j < size; j++ {
-			if strings.Compare(r.voiceCalls[j].Provider, r.voiceCalls[minIdx].Provider) == -1 {
+			if strings.Compare(voiceCalls[j].Provider, voiceCalls[minIdx].Provider) == -1 {
 				minIdx = j
 			}
 		}
-		r.voiceCalls[i], r.voiceCalls[minIdx] = r.voiceCalls[minIdx], r.voiceCalls[i]
+		voiceCalls[i], voiceCalls[minIdx] = voiceCalls[minIdx], voiceCalls[i]
 	}
 }
 
-func (r *Repo) ReplaceCountries() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	size := len(r.voiceCalls)
+func ReplaceCountries() {
+	size := len(voiceCalls)
 	for i := 0; i < size; i++ {
-		r.voiceCalls[i].Сountry = utils.Alpha_2[r.voiceCalls[i].Сountry]
+		voiceCalls[i].Сountry = utils.Alpha_2[voiceCalls[i].Сountry]
 	}
 }
 
-func (r *Repo) LoadData() error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	file, err := os.Open("resources/voice.data")
+func LoadData() error {
+	file, err := os.Open("simulator/voice.data")
 	if err != nil {
 		log.Println("Unable to open file:", err)
 		log.Println(err)
@@ -186,11 +147,11 @@ func (r *Repo) LoadData() error {
 		}
 		vc.MedianCallDuration = i
 
-		r.voiceCalls = append(r.voiceCalls, &vc)
+		voiceCalls = append(voiceCalls, &vc)
 
 	}
 
-	if len(r.voiceCalls) == 0 {
+	if len(voiceCalls) == 0 {
 		return errors.New("voice call service failed")
 	}
 
