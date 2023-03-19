@@ -49,7 +49,7 @@ func main() {
 	//inc.PrintData()
 
 	result := result.GetResultData()
-	fmt.Println(result)
+	fmt.Println(*result)
 
 	//service.NewService()
 

@@ -132,7 +132,7 @@ func (r *Repo) LoadData() error {
 
 		err = json.Unmarshal(body, &mmses)
 		if err != nil {
-			log.Fatalln(err)
+			log.Println(err)
 			return err
 		}
 

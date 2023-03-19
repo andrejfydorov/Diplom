@@ -8,7 +8,9 @@ import (
 	"Diplom/internal/sms"
 	"Diplom/internal/support"
 	"Diplom/internal/voice"
+	"errors"
 	"log"
+	"sync"
 )
 
 type ResultT struct {
@@ -27,105 +29,121 @@ type ResultSetT struct {
 	Incidents []incident.IncidentData        `json:"incident"`
 }
 
-func GetResultData() ResultT {
-	var rst ResultSetT
-	var rt = ResultT{Status: true, Data: rst}
+var mutex sync.Mutex
 
-	//========start sms region===================
+func assemblingSms() (*[][]sms.SMSData, error) {
+	var smses = make([][]sms.SMSData, 2)
+	smses[0] = make([]sms.SMSData, 1)
+	smses[1] = make([]sms.SMSData, 1)
+
 	s, err := sms.New()
 	if err != nil {
 		log.Println(err)
-		rt.Status = false
-		rt.Error = err.Error()
-		rt.Data = rst
-		return rt
+		return nil, err
 	}
+
 	s.ReplaceCountries()
 	s.SortWithCountry()
+
 	sms1, err := s.GetData()
 	if err != nil {
 		log.Println(err)
-		rt.Status = false
-		rt.Error = err.Error()
-		rt.Data = rst
-		return rt
+		return nil, err
 	}
 
 	s.SortWithProvider()
+
 	sms2, err := s.GetData()
 	if err != nil {
 		log.Println(err)
-		rt.Status = false
-		rt.Error = err.Error()
-		rt.Data = rst
-		return rt
+		return nil, err
 	}
-	//========end sms region===================
+	smses[0] = sms1
+	smses[0] = sms2
 
-	//========start mms region===================
+	if len(smses) == 0 {
+		log.Println("sms service failed")
+		return nil, errors.New("sms service failed")
+	}
+
+	return &smses, nil
+}
+
+func assemblingMms() (*[][]mms.MMSData, error) {
+	var mmses = make([][]mms.MMSData, 2)
+	mmses[0] = make([]mms.MMSData, 1)
+	mmses[1] = make([]mms.MMSData, 1)
+
 	m, err := mms.New()
 	if err != nil {
 		log.Println(err)
-		rt.Status = false
-		rt.Error = err.Error()
-		rt.Data = rst
-		return rt
+		return nil, err
 	}
+
 	m.ReplaceCountries()
 	m.SortWithCountry()
+
 	mms1, err := m.GetData()
 	if err != nil {
 		log.Println(err)
-		rt.Status = false
-		rt.Error = err.Error()
-		rt.Data = rst
-		return rt
+		return nil, err
 	}
 
 	m.SortWithProvider()
+
 	mms2, err := m.GetData()
 	if err != nil {
 		log.Println(err)
-		rt.Status = false
-		rt.Error = err.Error()
-		rt.Data = rst
-		return rt
+		return nil, err
 	}
-	//========end mms region===================
-	//======start voice call region=========
+
+	mmses[0] = mms1
+	mmses[0] = mms2
+
+	if len(mmses) == 0 {
+		log.Println("mms service failed")
+		return nil, errors.New("mms service failed")
+	}
+
+	return &mmses, err
+}
+
+func asseblingVoiceCall() (*[]voice.VoiceCallData, error) {
+	var vcd []voice.VoiceCallData
+
 	vc, err := voice.New()
 	if err != nil {
 		log.Println(err)
-		rt.Status = false
-		rt.Error = err.Error()
-		rt.Data = rst
-		return rt
+		return nil, err
 	}
 
 	vc1, err := vc.GetData()
 	if err != nil {
 		log.Println(err)
-		rt.Status = false
-		rt.Error = err.Error()
-		rt.Data = rst
-		return rt
+		return nil, err
 	}
 
-	//======end voice call region=========
-	//======start email region=========
-	em, err := email.New()
+	vcd = vc1
+
+	if len(vcd) == 0 {
+		log.Println("voice service failed")
+		return nil, errors.New("voice service failed")
+	}
+
+	return &vcd, nil
+}
+
+func assemblingEmail() (*map[string][][]email.EmailData, error) {
+	var emails = make(map[string][][]email.EmailData)
+
+	ems, err := email.New()
 	if err != nil {
 		log.Println(err)
-		rt.Status = false
-		rt.Error = err.Error()
-		rt.Data = rst
-		return rt
+		return nil, err
 	}
 
-	max_emails := em.GetThreeFast()
-	min_emails := em.GetThreeSlow()
-
-	emails := make(map[string][][]email.EmailData)
+	max_emails := ems.GetThreeFast()
+	min_emails := ems.GetThreeSlow()
 
 	for i, _ := range max_emails {
 		emails[i] = make([][]email.EmailData, 2)
@@ -135,101 +153,165 @@ func GetResultData() ResultT {
 		emails[i][0] = max_emails[i]
 		emails[i][1] = min_emails[i]
 	}
+
 	if len(emails) == 0 {
-		log.Println(err)
-		rt.Status = false
-		rt.Error = "email service failed"
-		rt.Data = rst
-		return rt
+		log.Println("email service failed")
+		return nil, errors.New("email service failed")
 	}
 
-	//======end email region=========
+	return &emails, nil
+}
 
-	//======start billing region=========
+func assemblingBilling() (*billing.BillingData, error) {
+	var bil billing.BillingData
+
 	bill, err := billing.New()
 	if err != nil {
 		log.Println(err)
-		rt.Status = false
-		rt.Error = err.Error()
-		rt.Data = rst
-		return rt
+		return nil, err
 	}
 
 	billing, err := bill.GetData()
 	if err != nil {
 		log.Println(err)
-		rt.Status = false
-		rt.Error = err.Error()
-		rt.Data = rst
-		return rt
+		return nil, err
 	}
 
-	//======end billing region=========
+	bil = billing
 
-	//======start support region=========
-	sup, err := support.New()
+	return &bil, nil
+}
+
+func assemblingSupport() (*[]int, error) {
+	var sup []int
+
+	sups, err := support.New()
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	supports := sups.GetCalculatedData()
+
+	sup = supports
+
+	if len(sup) == 0 {
+		log.Println("support service failed")
+		return nil, errors.New("support service failed")
+	}
+
+	return &sup, nil
+}
+
+func assemlingIncident() (*[]incident.IncidentData, error) {
+	var inc []incident.IncidentData
+
+	incs, err := incident.New()
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	incs.SortWithStatus()
+
+	incidents, err := incs.GetData()
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	inc = incidents
+
+	if len(inc) == 0 {
+		log.Println("incident service failed")
+		return nil, errors.New("incident service failed")
+	}
+
+	return &inc, nil
+}
+
+func GetResultData() *ResultT {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	var rst ResultSetT
+	var rt ResultT
+
+	smses, err := assemblingSms()
 	if err != nil {
 		log.Println(err)
 		rt.Status = false
 		rt.Error = err.Error()
 		rt.Data = rst
-		return rt
+		return &rt
 	}
 
-	supports := sup.GetCalculatedData()
-
-	//======end support region=========
-
-	//======start incident region=========
-	inc, err := incident.New()
+	mmses, err := assemblingMms()
 	if err != nil {
 		log.Println(err)
 		rt.Status = false
 		rt.Error = err.Error()
 		rt.Data = rst
-		return rt
+		return &rt
 	}
 
-	inc.SortWithStatus()
-
-	incidents, err := inc.GetData()
+	voices, err := asseblingVoiceCall()
 	if err != nil {
 		log.Println(err)
 		rt.Status = false
 		rt.Error = err.Error()
 		rt.Data = rst
-		return rt
+		return &rt
 	}
 
-	//======end incident region=========
+	ems, err := assemblingEmail()
+	if err != nil {
+		log.Println(err)
+		rt.Status = false
+		rt.Error = err.Error()
+		rt.Data = rst
+		return &rt
+	}
 
-	//========== assembling ResultSetT ResultT structures ================
-	rst.SMS = make([][]sms.SMSData, 2)
-	rst.SMS[0] = make([]sms.SMSData, 1)
-	rst.SMS[1] = make([]sms.SMSData, 1)
-	rst.SMS[0] = sms2
-	rst.SMS[1] = sms1
+	bil, err := assemblingBilling()
+	if err != nil {
+		log.Println(err)
+		rt.Status = false
+		rt.Error = err.Error()
+		rt.Data = rst
+		return &rt
+	}
 
-	rst.MMS = make([][]mms.MMSData, 2)
-	rst.MMS[0] = make([]mms.MMSData, 1)
-	rst.MMS[1] = make([]mms.MMSData, 1)
-	rst.MMS[0] = mms2
-	rst.MMS[1] = mms1
+	sup, err := assemblingSupport()
+	if err != nil {
+		log.Println(err)
+		rt.Status = false
+		rt.Error = err.Error()
+		rt.Data = rst
+		return &rt
+	}
 
-	rst.VoiceCall = vc1
+	inc, err := assemlingIncident()
+	if err != nil {
+		log.Println(err)
+		rt.Status = false
+		rt.Error = err.Error()
+		rt.Data = rst
+		return &rt
+	}
 
-	rst.Email = emails
+	//if all ok return struct
+	rst.SMS = *smses
+	rst.MMS = *mmses
+	rst.VoiceCall = *voices
+	rst.Email = *ems
+	rst.Billing = *bil
+	rst.Support = *sup
+	rst.Incidents = *inc
 
-	rst.Billing = billing
-
-	rst.Support = supports
-
-	rst.Incidents = incidents
-
-	//============== return structures=============
 	rt.Status = true
 	rt.Error = ""
 	rt.Data = rst
-	return rt
+	return &rt
 
 }

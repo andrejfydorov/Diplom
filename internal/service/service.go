@@ -13,7 +13,7 @@ func NewService() {
 
 	err := http.ListenAndServe(":8080", r)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 	}
 }
 

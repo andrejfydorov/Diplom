@@ -120,14 +120,14 @@ func (r *Repo) LoadData() error {
 	file, err := os.Open("resources/voice.data")
 	if err != nil {
 		log.Println("Unable to open file:", err)
-		log.Fatalln(err)
+		log.Println(err)
 		return err
 	}
 	defer file.Close()
 
 	content, err := ioutil.ReadAll(file)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 		return err
 	}
 

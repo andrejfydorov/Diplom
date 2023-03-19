@@ -68,27 +68,27 @@ func (r *Repo) LoadData() error {
 	file, err := os.Open("resources/billing.data")
 	if err != nil {
 		log.Println("Unable to open file:", err)
-		log.Fatalln(err)
+		log.Println(err)
 		return err
 	}
 	defer file.Close()
 
 	content, err := ioutil.ReadAll(file)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 		return err
 	}
 
 	contentStr := string(content)
 
 	if len(contentStr) < 6 {
-		log.Fatalln("Invalid input string")
+		log.Println("Invalid input string")
 		return errors.New("Invalid input string")
 	}
 
 	for _, v := range contentStr {
 		if !unicode.IsDigit(v) {
-			log.Fatalln("Invalid input string")
+			log.Println("Invalid input string")
 			return errors.New("Invalid input string")
 		}
 	}
@@ -98,7 +98,7 @@ func (r *Repo) LoadData() error {
 	for i, v := range contentStr {
 		num, err := strconv.Atoi(string(v))
 		if err != nil {
-			log.Fatalln(err)
+			log.Println(err)
 			return err
 		}
 		bytes[i] = byte(num)

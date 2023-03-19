@@ -179,14 +179,14 @@ func (r *Repo) LoadData() error {
 	file, err := os.Open("resources/email.data")
 	if err != nil {
 		log.Println("Unable to open file:", err)
-		log.Fatalln(err)
+		log.Println(err)
 		return err
 	}
 	defer file.Close()
 
 	content, err := ioutil.ReadAll(file)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 		return err
 	}
 
@@ -216,7 +216,7 @@ func (r *Repo) LoadData() error {
 
 		i, err := strconv.Atoi(str[2])
 		if err != nil {
-			log.Fatalln(err)
+			log.Println(err)
 			return err
 		}
 		email.DeliveryTime = i
